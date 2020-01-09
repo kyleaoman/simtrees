@@ -1,5 +1,6 @@
 import numpy as np
-from kyleaoman_utilities.hdf5_io import hdf5_get
+from simfiles import SimFiles
+from simfiles._hdf5_io import hdf5_get
 from importlib.util import spec_from_file_location, module_from_spec
 from os.path import expanduser
 from ._util import _log
@@ -123,7 +124,6 @@ class TreeTables:
         return
 
     def _read_snapshots(self):
-        from simfiles import SimFiles
         unique_sns = np.unique(self.sns)
         _log('TreeTables: Reading snapshots...')
         for i, sn in enumerate(unique_sns):
