@@ -1,12 +1,13 @@
 import numpy as np
-from kyleaoman_utilities.hdf5_io import hdf5_get
+from simfiles._hdf5_io import hdf5_get
 from importlib.util import spec_from_file_location, module_from_spec
 from os.path import expanduser
 from ._util import _log
 import astropy.units as U
 
-h = .704 #dimensionless Hubble constant
+h = .704  # dimensionless Hubble constant
 print('Using h={0:.3f}'.format(h))
+
 
 class _Node:
     def __init__(self, key, desc=None, tree=None, treetables=None):
@@ -14,22 +15,33 @@ class _Node:
         self.desc = desc
         self._treetables = treetables
         self._tree = tree
-        #can't call self._grow here unless we want a huge function stack
-        #don't initialize progs here so that we can distinguish no progs (ok) from uninitilized (error)
+        # can't call self._grow here unless we want a huge function stack
+        # don't initialize progs here so that we can distinguish no progs (ok)
+        # from uninitilized (error)
         return
 
     def _grow(self):
-        kwargs = {'desc': self, 'tree': self._tree, 'treetables': self._treetables}
-        self.progs = np.array([_Node(key, **kwargs) \
-                                   for key, value in self._treetables.tree_descid.items() \
-                                   if ((value == self.key) and (key != self.key))])
+        kwargs = {
+            'desc': self,
+            'tree': self._tree,
+            'treetables': self._treetables
+        }
+        self.progs = np.array(
+            [_Node(key, **kwargs)
+             for key, value in self._treetables.tree_descid.items()
+             if ((value == self.key) and (key != self.key))]
+        )
         self.progs = list(self.progs[self._argsort_progs(self.progs)])
         return self.progs
 
     def _argsort_progs(self, progs):
-        #order progenitors by decreasing mbpc - most bound particles contributed
+        # order progenitors by decreasing mbpc - most bound particles
+        # contributed
         keys = [prog.key for prog in progs]
-        return np.argsort([self._treetables.tree_mbpc[key] for key in keys])[::-1]
+        return np.argsort(
+            [self._treetables.tree_mbpc[key] for key in keys]
+        )[::-1]
+
 
 class _Root(_Node):
     def __init__(self, group, tree=None, treetables=None):
@@ -53,7 +65,12 @@ class Tree:
             for node in to_grow:
                 to_grow_next += node._grow()
             to_grow = to_grow_next
-            _log('  level: {0:.0f}, total nodes: {1:.0f}, nodes in next level: {2:.0f}'.format(snaplevel, len(self.nodes), len(to_grow)))
+            _log(
+                '  level: {0:.0f}, total nodes: {1:.0f},'
+                ' nodes in next level: {2:.0f}'.format(
+                    snaplevel, len(self.nodes), len(to_grow)
+                )
+            )
             snaplevel += 1
         self._make_trunk()
         _log('Tree: re-construction complete.')
@@ -65,10 +82,20 @@ class Tree:
             self.trunk.append(self.trunk[-1].progs[0])
         return
 
-#TreeTables not a subclass of Tree since many Tree instances may share a TreeTables instance
-#TreeTable instances are pickle-able
+
+# TreeTables not a subclass of Tree since many Tree instances may share a
+# TreeTables instance
+# TreeTable instances are pickle-able
 class TreeTables:
-    def __init__(self, snap_id, configfile, ncpu=1, phantom=10000000000000000, simfiles_config=None, use_snapshots=False):
+    def __init__(
+            self,
+            snap_id,
+            configfile,
+            ncpu=1,
+            phantom=10000000000000000,
+            simfiles_config=None,
+            use_snapshots=False
+    ):
 
         self.snap_id = snap_id
         self.configfile = configfile
@@ -79,7 +106,7 @@ class TreeTables:
 
         self._read_config()
         self._read_treetables()
-        
+
         self.sgns = {}
         self.masstypes = {}
         if self.use_snapshots:
@@ -89,7 +116,7 @@ class TreeTables:
         self._sort_tables()
         self._reverse()
 
-        #explicit deletions to clean up memory a bit
+        # explicit deletions to clean up memory a bit
         del self.tree_ids
         del self.tree_descids, self.tree_mbpcs
         del self.in_tab, self.sns, self.gns, self.sgns, self.masstypes
