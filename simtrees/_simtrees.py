@@ -180,13 +180,21 @@ class TreeTables:
     def _sort_tables(self):
         _log('TreeTables: sorting '+{True: 'snaphost', False: 'subfind'}[self.use_snapshots]+' tables.')
         if not self.use_snapshots:
-            self.sgns = {tree_id: sgn for tree_id, sgn in zip(self.tf_tree_ids, self.tf_sgns)}
-            self.masstypes = {tree_id: masstype for tree_id, masstype in zip(self.tf_tree_ids, self.tf_masstypes)}
-        keylist = [key for key in self.tree_ids[self.in_tab]]
-        self.sgns = np.array([self.sgns[key] for key in keylist])
-        self.masstypes = np.array([self.masstypes[key].value for key in keylist]) * self.masstypes[keylist[0]].unit
-
-        self.sub_groups = dict(zip(self.tree_ids[self.in_tab], np.vstack((self.sns[self.in_tab], self.gns[self.in_tab], self.sgns)).T))
+            mask = np.isin(self.tf_tree_ids, self.tree_ids[self.in_tab])
+            self.sgns = self.tf_sgns[mask]
+            self.masstypes = self.tf_masstypes[mask]
+        else:
+            keylist = self.tree_ids[self.in_tab]
+            self.sgns = np.array([self.sgns[key] for key in keylist])
+            self.masstypes = U.Quantity([self.masstypes[key] for key in keylist])
+        self.sub_groups = dict(zip(
+            self.tree_ids[self.in_tab],
+            np.vstack((
+                self.sns[self.in_tab],
+                self.gns[self.in_tab],
+                self.sgns
+            )).T
+        ))
         self.sub_masstypes = dict(zip(self.tree_ids[self.in_tab], self.masstypes))
 
         self.tree_descid = dict(zip(self.tree_ids, self.tree_descids))
