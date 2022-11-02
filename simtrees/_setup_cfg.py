@@ -1,2 +1,1 @@
-paths = {} #intialize snapshot dict
-
+paths = {}  # intialize snapshot dict
