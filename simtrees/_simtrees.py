@@ -279,14 +279,9 @@ class TreeTables:
         _log("TreeTables: evaluating mass filter.")
         # include only halos above mass cut for a mass of a given type
         # (0:gas, 1:DM, 2:boundary, 3:boundary, 4:star, 5:BH)
-        include = np.array(
-            [
-                key
-                for key, value in self.sub_masstypes.items()
-                if value[particle_type] > cut
-            ]
-        )
-        self._filter(include)
+        mask = U.Quantity(list(self.sub_masstypes.values()))[:, particle_type] > cut
+        include_keys = np.array(list(self.sub_masstypes.keys()))[mask]
+        self._filter(include_keys)
         return
 
     def _read_config(self):
