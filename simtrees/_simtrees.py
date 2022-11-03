@@ -110,8 +110,10 @@ class TreeTables:
         self._read_config()
         self._read_treetables()
 
-        self.sgns = {}
-        self.masstypes = {}
+        self.sgns = dict()
+        self.cops = dict()
+        self.vels = dict()
+        self.masstypes = dict()
         if self.use_snapshots:
             self._read_snapshots()
         else:
@@ -122,7 +124,8 @@ class TreeTables:
         # explicit deletions to clean up memory a bit
         del self.tree_ids
         del self.tree_descids, self.tree_mbpcs
-        del self.in_tab, self.sns, self.gns, self.sgns, self.masstypes
+        del self.in_tab, self.sns, self.gns, self.sgns
+        del self.cops, self.vels, self.masstypes
         if self.use_snapshots:
             del self.tree_tabposs
 
@@ -190,12 +193,16 @@ class TreeTables:
             )
             SF.load(keys=("sgns", "msubfind"))
             tf_sgns = SF.sgns
+            tf_cops = SF.cops
+            tf_vels = SF.vcents
             tf_masstypes = SF.msubfind
             this_sn = np.logical_and(self.sns == sn, self.in_tab)
             for tree_id, tree_tabpos in zip(
                 self.tree_ids[this_sn], self.tree_tabposs[this_sn]
             ):
                 self.sgns[tree_id] = tf_sgns[tree_tabpos].value
+                self.cops[tree_id] = tf_cops[tree_tabpos].value
+                self.vels[tree_id] = tf_vels[tree_tabpos].value
                 self.masstypes[tree_id] = tf_masstypes[tree_tabpos]
             del SF["sgns"], SF["msubfind"]
             del SF
@@ -211,6 +218,17 @@ class TreeTables:
         self.tf_sgns = hdf5_get(
             self.fpath, self.sfbase, "/Subhalo/SubGroupNumber", ncpu=self.ncpu
         )
+        _log("  CentreOfPotential")
+        self.tf_cops = hdf5_get(
+            self.fpath,
+            self.sfbase,
+            "/Subhalo/CentreOfPotential",
+            ncpu=self.ncpu,
+        )
+        _log("  Velocity")
+        self.tf_vels = hdf5_get(
+            self.fpath, self.sfbase, "/Subhalo/Velocity", ncpu=self.ncpu
+        )
         _log("  MassType")
         self.tf_masstypes = (
             hdf5_get(
@@ -225,16 +243,20 @@ class TreeTables:
     def _sort_tables(self):
         _log(
             "TreeTables: sorting "
-            + {True: "snaphost", False: "subfind"}[self.use_snapshots]
+            + {True: "snapshot", False: "subfind"}[self.use_snapshots]
             + " tables."
         )
         if not self.use_snapshots:
             mask = np.isin(self.tf_tree_ids, self.tree_ids[self.in_tab])
             self.sgns = self.tf_sgns[mask]
+            self.cops = self.tf_cops[mask]
+            self.vels = self.tf_vels[mask]
             self.masstypes = self.tf_masstypes[mask]
         else:
             keylist = self.tree_ids[self.in_tab]
             self.sgns = np.array([self.sgns[key] for key in keylist])
+            self.cops = np.array([self.cops[key] for key in keylist])
+            self.vels = np.array([self.vels[key] for key in keylist])
             self.masstypes = U.Quantity(
                 [self.masstypes[key] for key in keylist]
             )
@@ -245,6 +267,12 @@ class TreeTables:
                     (self.sns[self.in_tab], self.gns[self.in_tab], self.sgns)
                 ).T,
             )
+        )
+        self.sub_cops = dict(
+            zip(self.tree_ids[self.in_tab], self.cops)
+        )
+        self.sub_vels = dict(
+            zip(self.tree_ids[self.in_tab], self.vels)
         )
         self.sub_masstypes = dict(
             zip(self.tree_ids[self.in_tab], self.masstypes)
@@ -259,6 +287,8 @@ class TreeTables:
         _log("TreeTables: applying mask.")
         # kill dict items with keys not in include
         self.sub_groups = {k: self.sub_groups[k] for k in include}
+        self.sub_cops = {k: self.sub_cops[k] for k in include}
+        self.sub_vels = {k: self.sub_vels[k] for k in include}
         self.sub_masstypes = {k: self.sub_masstypes[k] for k in include}
         self.tree_descid = {k: self.tree_descid[k] for k in include}
         self.tree_mbpc = {k: self.tree_mbpc[k] for k in include}
@@ -267,7 +297,8 @@ class TreeTables:
 
     def _reverse(self):
         _log('TreeTables: calculating "reversed" dicts.')
-        # construct reverse dict so that new root nodes can obtain their key from group
+        # construct reverse dict so that new root nodes can obtain their key
+        # from group
         self.sub_groups_r = {
             tuple(value): key
             for key, value in self.sub_groups.items()
@@ -279,7 +310,9 @@ class TreeTables:
         _log("TreeTables: evaluating mass filter.")
         # include only halos above mass cut for a mass of a given type
         # (0:gas, 1:DM, 2:boundary, 3:boundary, 4:star, 5:BH)
-        mask = U.Quantity(list(self.sub_masstypes.values()))[:, particle_type] > cut
+        mask = U.Quantity(
+            list(self.sub_masstypes.values())
+        )[:, particle_type] > cut
         include_keys = np.array(list(self.sub_masstypes.keys()))[mask]
         self._filter(include_keys)
         return
