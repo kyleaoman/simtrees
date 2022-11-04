@@ -16,8 +16,7 @@ class _Node:
         self._treetables = treetables
         self._tree = tree
         # can't call self._grow here unless we want a huge function stack
-        # don't initialize progs here so that we can distinguish no progs (ok)
-        # from uninitilized (error)
+        self.progs = None  # distinct from [], which is no progs
         return
 
     def _grow(self):
