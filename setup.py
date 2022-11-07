@@ -6,7 +6,7 @@ setup(
     description="Interface to John Helly merger tree files.",
     url="",
     author="Kyle Oman",
-    author_email="koman@astro.rug.nl",
+    author_email="kyle.a.oman@durham.ac.uk",
     license="GNU GPL v3",
     packages=["simtrees"],
     install_requires=["numpy", "h5py"],

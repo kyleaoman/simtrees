@@ -1,6 +1,5 @@
 import numpy as np
-from simfiles import SimFiles
-from simfiles._hdf5_io import hdf5_get
+from _hdf5_io import hdf5_get
 from importlib.util import spec_from_file_location, module_from_spec
 from os.path import expanduser
 from ._util import _log
@@ -17,8 +16,7 @@ class _Node:
         self._treetables = treetables
         self._tree = tree
         # can't call self._grow here unless we want a huge function stack
-        # don't initialize progs here so that we can distinguish no progs (ok)
-        # from uninitilized (error)
+        self.progs = None  # distinct from [], which is no progs
         return
 
     def _grow(self):
@@ -182,6 +180,7 @@ class TreeTables:
         return
 
     def _read_snapshots(self):
+        from simfiles import SimFiles
         unique_sns = np.unique(self.sns)
         _log("TreeTables: Reading snapshots...")
         for i, sn in enumerate(unique_sns):
