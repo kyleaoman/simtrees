@@ -191,7 +191,7 @@ class TreeTables:
                 configfile=self.simfiles_config,
                 ncpu=self.ncpu,
             )
-            SF.load(keys=("sgns", "msubfind"))
+            SF.load(keys=("sgns", "cops", "vcents", "msubfind", ))
             tf_sgns = SF.sgns
             tf_cops = SF.cops
             tf_vels = SF.vcents
@@ -204,7 +204,7 @@ class TreeTables:
                 self.cops[tree_id] = tf_cops[tree_tabpos].value
                 self.vels[tree_id] = tf_vels[tree_tabpos].value
                 self.masstypes[tree_id] = tf_masstypes[tree_tabpos]
-            del SF["sgns"], SF["msubfind"]
+            del SF["sgns"], SF["cops"], SF["vcents"], SF["msubfind"]
             del SF
         return
 
@@ -219,16 +219,17 @@ class TreeTables:
             self.fpath, self.sfbase, "/Subhalo/SubGroupNumber", ncpu=self.ncpu
         )
         _log("  CentreOfPotential")
+        # Comoving!
         self.tf_cops = hdf5_get(
             self.fpath,
             self.sfbase,
             "/Subhalo/CentreOfPotential",
             ncpu=self.ncpu,
-        )
+        ) / h * U.Mpc
         _log("  Velocity")
         self.tf_vels = hdf5_get(
             self.fpath, self.sfbase, "/Subhalo/Velocity", ncpu=self.ncpu
-        )
+        ) * U.km / U.s
         _log("  MassType")
         self.tf_masstypes = (
             hdf5_get(
