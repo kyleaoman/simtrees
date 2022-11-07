@@ -1,5 +1,5 @@
 import numpy as np
-from _hdf5_io import hdf5_get
+from ._hdf5_io import hdf5_get
 from importlib.util import spec_from_file_location, module_from_spec
 from os.path import expanduser
 from ._util import _log
